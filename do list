@@ -1,0 +1,117 @@
+equire(__dirname + "/date.js");
+const mongoose = require("mongoose");
+
+const app = express();
+
+app.set('view engine', 'ejs');
+
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(express.static("public"));
+
+mongoose.connect("mongodb://localhost:27017/dolist")
+
+let itemsschema = {
+  name: String
+}
+
+const Item = mongoose.model("item", itemsschema);
+
+const item1 = new Item({
+  name: "welcome"
+});
+
+const item2 = new Item({
+  name: "hi"
+});
+
+const item3 = new Item({
+  name: "dele"
+});
+
+
+const defaultlist = [item1, item2, item3];
+
+const listshema = {
+  name: String,
+  items: [itemsschema]
+};
+
+const List = mongoose.model("list", listshema);
+
+app.get("/", function (req, res) {
+
+  Item.find({}, function (err, found) {
+
+    if (found.length === 0) {
+      Item.insertMany(defaultlist, function (err) {
+        if (err) {
+          console.log("error")
+        } else {
+          console.log("sucess")
+        }
+      })
+      res.redirect("/")
+    } else {
+      res.render("list", { listTitle: "today", newListItems: found });
+    }
+
+  })
+});
+
+app.post("/", function (req, res) {
+
+  const itemname = req.body.newItem;
+  const item = new Item({
+    name: itemname
+  });
+  item.save();
+  res.redirect("/")
+
+});
+
+app.post("/delete", function (req, res) {
+  const checkid = req.body.checkbox;
+  Item.findByIdAndRemove(checkid, function (err) {
+    if (err) {
+      console.log(err);
+    }
+  })
+
+  res.redirect("/")
+
+});
+
+app.get("/:customlist", function (req, res) {
+  customname = req.params.customlist
+
+
+  List.find({ name: customname }, function (err, foundlist) {
+    if (!err) {
+      if (!foundlist) {
+        let list = new List({
+          name: customname,
+          items: defaultlist
+        })
+        list.save();
+
+      } else {
+        console.log("theri")
+
+        res.render("list", { listTitle: "foundlist.name", newListItems: "apple" });
+      }
+    }
+
+  })
+
+
+
+});
+
+app.get("/about", function (req, res) {
+  res.render("about");
+});
+
+app.listen(3000, function () {
+  console.log("Server started on port 3000");
+});
+
